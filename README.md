@@ -1,6 +1,6 @@
 # kivitendo_docker
 
-Docker Build for Kivitendo a erp solution for small businesses
+Docker Build for Kivitendo erp solution for small businesses
 
 
 ## Table of Contents
@@ -8,27 +8,27 @@ Docker Build for Kivitendo a erp solution for small businesses
 - [Introduction](#introduction)
 - [Changelog](Changelog.md)
 - [Contributing](#contributing)
-- [Reporting Issues](#reporting-issues)
+- [Reporting Issues](#issues)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Creating User and Database at Launch](creating-user-and-database-at-launch)
 - [Configuration](#configuration)
-- [Data Store](#data-store)
+- [Build container from Dockerfile](#build)
 - [Upgrading](#upgrading)
+- [Using Docker-Compose](#docker-compose)
 
-## Introduction
+## <a name="introduction"></a>Introduction
 
 Dockerfile to build a Kivitendo container image which can be linked to other containers.
 Will install Apache2 and all the necessary packages for Kivitendo.
 
-## Contributing
+## <a name="contributing"></a>Contributing
 
 If you find this image useful here's how you can help:
 
 - Send a Pull Request with your awesome new features and bug fixes
 - Help new users with [Issues](https://github.com/atl285/kivitendo_docker/issues) they may encounter
 
-## Reporting Issues
+## <a name="issues"></a>Reporting Issues
 
 Docker is a relatively new project and is active being developed and tested by a thriving community of developers and testers and every release of docker features many enhancements and bugfixes.
 
@@ -44,7 +44,7 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-compose-plugin
 ```
 
-## Installation
+## <a name="installation"></a>Installation
 
 Pull the latest version of the image from the docker index. This is the recommended method of installation as it is easier to update image in the future. These builds are performed by the **Docker Trusted Build** service.
 
@@ -60,7 +60,7 @@ cd kivitendo_docker
 docker build --build-arg "VERSION=3.8.0" -t="<name_of_your_container>" ./docker/ 
 ```
 
-## Quick Start
+## <a name="quick-start"></a>Quick Start
 
 Run the postgres image
 
@@ -82,7 +82,7 @@ docker ps -q | xargs docker inspect | grep IPAddress | cut -d '"' -f 4
 
 Got to the administrative interface of kivitendo using the password: admin123 and configure the database. All database users (kivitendo and docker) use docker as password.
 
-## Configuration
+## <a name="configuration"></a>Configuration
 
 ### Data Store
 
@@ -100,7 +100,7 @@ This will make sure that the data stored in the database is not lost when the im
 
 By default 'docker' is assigned as password for the postgres user.
 
-## Build container from Dockerfile
+## <a name="build"></a>Build container from Dockerfile
 
 You can build the container from the Dockerfile in
 https://github.com/atl285/kivitendo_docker
@@ -113,7 +113,7 @@ cd kivitendo_docker
 sudo docker build --build-arg "VERSION=3.8.0" -t="<name_of_your_container>" ./docker/
 ```
 
-## Upgrading
+## <a name="upgrading"></a>Upgrading
 
 To upgrade to newer releases, simply follow this 3 step upgrade procedure.
 
@@ -135,7 +135,7 @@ docker pull drnoa/kivitendo-docker:latest
 docker run --name <name_of_your_container> -d [OPTIONS] drnoa/kivitendo-docker:latest
 ```
 
-## Using Docker-Compose
+## <a name="docker-compose"></a>Using Docker-Compose
 
 The repository contains a `docker-compose.yml` to setup all the needed stuff. This is more user friendly.
 
