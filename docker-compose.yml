@@ -1,0 +1,48 @@
+version: '2'
+
+services:
+  # Kivitendo ERP
+  kivitendo:
+    container_name: kivitendo
+    image: kivitendo:${RELEASE_TAG}
+    build:
+      args:
+        - VERSION=${RELEASE_TAG}
+      context: ./docker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+     - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+     - DB_HOST=${DB_HOST}
+     - DB_PORT=${DB_PORT}
+     - DB_DBNAME=${DB_DBNAME}
+     - DB_USER=${DB_USER}
+     - DB_PASSWORD=${DB_PASSWORD}
+     - SMTP_HOST=${SMTP_HOST}
+     - SMTP_PORT=${SMTP_PORT}
+     - SMTP_SECURITY=${SMTP_SECURITY}
+     - SMTP_USER=${SMTP_USER}
+     - SMTP_PASSWORD=${SMTP_PASSWORD}
+    ports:
+      - 8080:80
+    depends_on:
+      - db
+
+  # Kivitendo database
+  db:
+    container_name: db
+    image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DBNAME}
+      - LANG=de_DE.utf8
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  db:
+#    driver: local-persist
+#    driver_opts:
+#      mountpoint: ./postgres/data
