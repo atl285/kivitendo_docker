@@ -10,7 +10,8 @@ FROM debian:bullseye AS base
 
 #Packages 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN apt-get -qq update && apt-get -y upgrade
+RUN echo 'APT::Install-Recommends "false"; \nAPT::Install-Suggests "false"; \n' > /etc/apt/apt.conf.d/00onlyrequired && \
+    apt-get -qq update && apt-get -y upgrade
 RUN DEBIAN_FRONTEND=noninteractive apt install -y  apache2 libarchive-zip-perl libclone-perl \
   libconfig-std-perl libdatetime-perl libdbd-pg-perl libdbi-perl \
   libemail-address-perl  libemail-mime-perl libfcgi-perl libjson-perl \
@@ -30,7 +31,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y  apache2 libarchive-zip-perl l
   php-mail php-mail-mime php-pgsql php-fpdf imagemagick fonts-freefont-ttf php-curl dialog php-enchant aspell-de \
   libcgi-pm-perl libdatetime-set-perl libfile-mimeinfo-perl liblist-utilsby-perl libpbkdf2-tiny-perl libregexp-ipv6-perl \
   libtext-unidecode-perl libdaemon-generic-perl libfile-flock-perl libfile-slurp-perl libset-crontab-perl python3 python3-serial \
-  libcrypt-pbkdf2-perl git libcgi-pm-perl aqbanking-tools desktop-file-utils supervisor
+  libcrypt-pbkdf2-perl git libcgi-pm-perl aqbanking-tools desktop-file-utils supervisor \
+  libimager-perl libimager-qrcode-perl libipc-run-perl libmath-round-perl librest-client-perl
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install locales poppler-utils && sed -i -e 's/# de_DE/de_DE/' -e 's/# en_US/en_US/' /etc/locale.gen && /usr/sbin/locale-gen
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install sudo
 RUN DEBIAN_FRONTEND=noninteractive apt install -y  build-essential
@@ -42,6 +44,7 @@ RUN cpan Path::Tiny File:Basedir File::DesktopEntry DateTime::event::Cron DateTi
          Set::Infinite Rose::Db::Object File::MimeInfo Exception::Class \
          Daemon::Generic DateTime::Event::Cron File::Flock File::Slurp \
          List::UtilsBy Regexp::IPv6
+#         Imager Imager::QRCode IPC::Run Math::Round REST::Client 
 
 
 # ADD APACHE
@@ -71,10 +74,10 @@ RUN find /var/www -type f -exec chmod u+rw,g+rw,o+r {} +
 RUN a2enmod fcgid
 
 RUN DEBIAN_FRONTEND=noninteractive apt remove -y build-essential && apt -y autoremove
-RUN apt clean
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && rm -rf /root/.cpan/build/*
 
 # Now create the specific container
-FROM base
+FROM scratch
 ARG VERSION
 COPY --from=base / /
 
@@ -88,7 +91,6 @@ EXPOSE 80
 RUN cd /var/www/ && git clone https://github.com/kivitendo/kivitendo-erp.git
 RUN cd /var/www/ && git clone https://github.com/kivitendo/kivitendo-crm.git && rm -rf kivitendo-crm/.git
 RUN cd /var/www/kivitendo-erp && git checkout release-${VERSION} && ln -s ../kivitendo-crm/ crm && rm -rf .git
-ADD kivitendo.conf /var/www/kivitendo-erp/config/kivitendo.conf
 RUN ln -s ../kivitendo-crm/ crm
 RUN cd /var/www/ && sed -i '$adocument.write("<script type='text/javascript' src='crm/js/ERPplugins.js'></script>")' kivitendo-erp/js/kivi.js
 RUN cd /var/www/kivitendo-erp/menus/user && ln -s ../../../kivitendo-crm/menu/10-crm-menu.yaml 10-crm-menu.yaml
@@ -99,10 +101,13 @@ RUN cd /var/www/kivitendo-erp/locale/de && ln -s ../../../../kivitendo-crm/menu/
 RUN cd /var/www/kivitendo-erp/ && perl /var/www/kivitendo-erp/scripts/installation_check.pl
 
 #Kivitendo rights
-RUN mkdir /var/www/kivitendo-erp/webdav
-RUN chown -R www-data /var/www/kivitendo-erp/users /var/www/kivitendo-erp/spool /var/www/kivitendo-erp/webdav
-RUN chown www-data /var/www/kivitendo-erp/templates /var/www/kivitendo-erp/users
-RUN chmod -R +x /var/www/kivitendo-erp/
+RUN mkdir /var/www/kivitendo-erp/webdav && \
+    chown -R www-data /var/www/kivitendo-erp/users /var/www/kivitendo-erp/spool /var/www/kivitendo-erp/webdav && \
+    chown www-data /var/www/kivitendo-erp/templates /var/www/kivitendo-erp/users && \
+    chmod -R +x /var/www/kivitendo-erp/
+
+# add Kivitendo configuration
+ADD --chown=www-data:www-data kivitendo.conf /var/www/kivitendo-erp/config/kivitendo.conf
 
 # Update the default apache site with the config we created.
 ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
@@ -110,11 +115,8 @@ ADD apache-config.conf /etc/apache2/sites-available/000-default.conf
  
 # Scripts
 ADD supervisord-apache2.conf /etc/supervisor/conf.d/supervisord-apache2.conf
-ADD supervisord-apache2.sh /usr/local/bin/supervisord-apache2.sh
-#ADD supervisord-postgresql.conf /etc/supervisor/conf.d/supervisord-postgresql.conf
-#ADD supervisord-postgresql.sh /usr/local/bin/supervisord-postgresql.sh
-ADD start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/*.sh
+ADD --chmod=755 supervisord-apache2.sh /usr/local/bin/supervisord-apache2.sh
+ADD --chmod=755 start.sh /usr/local/bin/start.sh
 
 
 # By default, simply start apache.
