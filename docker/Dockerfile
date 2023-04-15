@@ -9,7 +9,6 @@ FROM debian:bullseye AS base
 
 
 #Packages 
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN echo 'APT::Install-Recommends "false"; \nAPT::Install-Suggests "false"; \n' > /etc/apt/apt.conf.d/00onlyrequired && \
     apt-get -qq update && apt-get -y upgrade
 RUN DEBIAN_FRONTEND=noninteractive apt install -y  apache2 libarchive-zip-perl libclone-perl \
@@ -70,13 +69,23 @@ RUN chmod u+rwx,g+rx,o+rx /var/www
 RUN find /var/www -type d -exec chmod u+rwx,g+rx,o+rx {} +
 RUN find /var/www -type f -exec chmod u+rw,g+rw,o+r {} +
 
-#Perl Modul im Apache laden
-RUN a2enmod fcgid
+# Perl Modul im Apache laden
+RUN a2enmod fcgid && a2enmod cgi && a2enmod rewrite
 
+# Update the default apache site with the config we created.
+ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
+ADD apache-config.conf /etc/apache2/sites-available/000-default.conf
+ 
+# Scripts
+ADD supervisord-apache2.conf /etc/supervisor/conf.d/supervisord-apache2.conf
+ADD --chmod=755 supervisord-apache2.sh /usr/local/bin/supervisord-apache2.sh
+ADD --chmod=755 start.sh /usr/local/bin/start.sh
+
+# clean up caches and installation artifacts
 RUN DEBIAN_FRONTEND=noninteractive apt remove -y build-essential && apt -y autoremove
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && rm -rf /root/.cpan/build/*
 
-# Now create the specific container
+# Now create the custom container from scratch
 FROM scratch
 ARG VERSION
 COPY --from=base / /
@@ -109,18 +118,5 @@ RUN mkdir /var/www/kivitendo-erp/webdav && \
 # add Kivitendo configuration
 ADD --chown=www-data:www-data kivitendo.conf /var/www/kivitendo-erp/config/kivitendo.conf
 
-# Update the default apache site with the config we created.
-ADD apache-config.conf /etc/apache2/sites-enabled/000-default.conf
-ADD apache-config.conf /etc/apache2/sites-available/000-default.conf
- 
-# Scripts
-ADD supervisord-apache2.conf /etc/supervisor/conf.d/supervisord-apache2.conf
-ADD --chmod=755 supervisord-apache2.sh /usr/local/bin/supervisord-apache2.sh
-ADD --chmod=755 start.sh /usr/local/bin/start.sh
-
-
 # By default, simply start apache.
 CMD ["/usr/local/bin/start.sh"]
-
-
-
