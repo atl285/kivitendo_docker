@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: cd docker && docker build --file ./Dockerfile --tag my-image-name:$(date +%s) .
+      run: cd docker && docker build --build-arg "VERSION=3.5.6.1" --file ./Dockerfile --tag my-image-name:$(date +%s) .
